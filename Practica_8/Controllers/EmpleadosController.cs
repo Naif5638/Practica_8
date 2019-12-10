@@ -5,7 +5,10 @@ using System.Data.Entity;
 using System.Linq;
 using System.Net;
 using System.Web;
+using System.Web.Compilation;
 using System.Web.Mvc;
+using ClosedXML.Excel;
+using DocumentFormat.OpenXml.InkML;
 using Practica_8.Models.DAL;
 using Practica_8.Models.Models;
 
@@ -114,6 +117,38 @@ namespace Practica_8.Controllers
             db.Empleados.Remove(empleado);
             db.SaveChanges();
             return RedirectToAction("Index");
+        }
+
+
+        public FileResult ExportarEmpleadosCSV()
+        {
+            DataTable dt = new DataTable("Grid");
+            dt.Columns.AddRange(new DataColumn[4]
+            {
+                new DataColumn("Codigo"),
+                new DataColumn("Nombres"),
+                new DataColumn("Apellidos"),
+                new DataColumn("Fecha_Ingreso")
+            });
+
+            var empleados = from Empleado in db.Empleados
+                            where Empleado.Apellidos.Contains("A")
+                            select Empleado;
+
+            foreach (var empleado in empleados)
+            {
+                dt.Rows.Add(empleado.EmpleadoId, empleado.Nombres, empleado.Apellidos, empleado.Fecha_Ingreso);
+            }
+
+            using (XLWorkbook wb = new XLWorkbook())
+            {
+                wb.Worksheets.Add(dt);
+                using (System.IO.MemoryStream stream = new System.IO.MemoryStream())
+                {
+                    wb.SaveAs(stream);
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Grid.xlsx");
+                }
+            }
         }
 
         protected override void Dispose(bool disposing)
